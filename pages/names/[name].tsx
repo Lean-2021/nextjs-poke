@@ -6,6 +6,7 @@ import { Pokemon, PokemonListResponse } from '../../interfaces';
 import { Grid, Card, Text, Button, Container, Image } from '@nextui-org/react';
 import { getPokemonInfo, localFavorites } from '../../utils';
 import canvasConfetti from 'canvas-confetti';
+import { redirect } from 'next/dist/server/api-utils';
 
 interface Props {
   pokemon: Pokemon;
@@ -115,17 +116,29 @@ export const getStaticPaths: GetStaticPaths = async (ctx) => {
     paths: pokemonName.map((name) => ({
       params: { name },
     })),
-    fallback: false,
+    fallback: 'blocking',
   };
 };
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const { name } = params as { name: string };
 
+  const pokemon = await getPokemonInfo(name.toLowerCase());
+
+  if (!pokemon) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
+  }
+
   return {
     props: {
-      pokemon: await getPokemonInfo(name),
+      pokemon,
     },
+    revalidate: 86400,
   };
 };
 
